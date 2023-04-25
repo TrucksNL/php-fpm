@@ -8,10 +8,11 @@ on:
 
 jobs:
 
-  build:
+  build-and-push-image:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - name: Git checkout
+      uses: actions/checkout@v3
     - name: Docker meta
       id: meta
       uses: docker/metadata-action@v4
@@ -50,4 +51,4 @@ jobs:
         file: ./Dockerfile
         platforms: linux/amd64,linux/arm64
         push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta.outputs.tags }}
+        tags: trucksnl/php-fpm:latest , ${{ steps.meta.outputs.tags }}
