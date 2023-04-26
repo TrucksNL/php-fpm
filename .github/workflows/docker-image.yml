@@ -45,4 +45,4 @@ jobs:
           "ALPINE_VERSION=${{ matrix.alpine-version }}"
         tags: |
           trucksnl/php-fpm:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}
-          ghcr.io/TrucksNL/php-fpm:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}
+          ghcr.io/trucksnl/php-fpm:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}
