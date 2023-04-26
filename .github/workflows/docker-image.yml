@@ -2,9 +2,9 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ 'main' ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ 'main' ]
 
 jobs:
 
@@ -17,6 +17,13 @@ jobs:
     steps:
     - name: Git checkout
       uses: actions/checkout@v3
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: |
+          trucksnl/php-fpm
+          ghcr.io/trucksnl/php-fpm
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
     - name: Set up Docker Buildx
@@ -43,12 +50,9 @@ jobs:
           linux/arm64
         push: ${{ github.event_name != 'pull_request' }}
         build-args: |
-          "PHP_VERSION=${{ matrix.php-version }}"
-          "ALPINE_VERSION=${{ matrix.alpine-version }}"
-        labels: |
-          org.opencontainers.image.source='https://github.com/TrucksNL/php-fpm'
-          org.opencontainers.image.url='https://github.com/TrucksNL/php-fpm'
-          org.label-schema.vcs-url='https://github.com/TrucksNL/php-fpm'
+          PHP_VERSION: '${{ matrix.php-version }}'
+          ALPINE_VERSION: '${{ matrix.alpine-version }}'
+        labels: ${{ steps.meta.outputs.labels }}
         tags: |
           trucksnl/php-fpm:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}
           ghcr.io/trucksnl/php-fpm:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}
