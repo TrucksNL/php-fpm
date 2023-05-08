@@ -9,10 +9,13 @@ RUN apk add --no-cache \
     git
 
 RUN install-php-extensions \
+    bcmath \
     gd \
     intl \
+    mongodb-stable \
     mysqli \
     opcache \
     pdo_mysql \
     redis-stable \
+    sysvsem \
     zip
