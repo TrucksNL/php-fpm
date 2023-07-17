@@ -57,6 +57,6 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         tags: |
           trucksnl/php-fpm:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}
-          trucksnl/php-fpm:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v{{ github.run_number }}
+          trucksnl/php-fpm:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v${{ github.run_number }}
           ghcr.io/trucksnl/php-fpm:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}
-          ghcr.io/trucksnl/php-fpm:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v{{ github.run_number }}
+          ghcr.io/trucksnl/php-fpm:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v${{ github.run_number }}
