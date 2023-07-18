@@ -1,6 +1,12 @@
 ARG ALPINE_VERSION='3.18'
 ARG PHP_VERSION='8.2'
 
+FROM alpine:${ALPINE_VERSION} AS knownhosts
+
+RUN apk add --no-cache openssh
+RUN ssh-keyscan bitbucket.org > /known_hosts
+
+
 FROM php:${PHP_VERSION}-fpm-alpine${ALPINE_VERSION}
 
 COPY --link --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
@@ -26,3 +32,5 @@ RUN install-php-extensions \
     redis-stable \
     sysvsem \
     zip
+
+COPY --link --from=knownhosts /known_hosts /root/.ssh/known_hosts
