@@ -1,19 +1,14 @@
 ARG ALPINE_VERSION='3.18'
 ARG PHP_VERSION='8.2'
 
-FROM alpine:${ALPINE_VERSION} AS knownhosts
-
-RUN apk add --no-cache openssh
-RUN ssh-keyscan bitbucket.org > /known_hosts
-
-
 FROM php:${PHP_VERSION}-fpm-alpine${ALPINE_VERSION}
 
 COPY --link --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
 RUN apk add --no-cache \
     fcgi \
-    git
+    git \
+    openssh
 
 RUN wget -O /usr/local/bin/php-fpm-healthcheck \
     https://raw.githubusercontent.com/renatomefi/php-fpm-healthcheck/master/php-fpm-healthcheck \
@@ -33,4 +28,5 @@ RUN install-php-extensions \
     sysvsem \
     zip
 
-COPY --link --from=knownhosts /known_hosts /root/.ssh/known_hosts
+RUN mkdir -p /root/.ssh/ \
+    && ssh-keyscan bitbucket.org > /root/.ssh/known_hosts
