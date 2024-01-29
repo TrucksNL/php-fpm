@@ -1,7 +1,4 @@
-ARG PHP_VERSION;
-ARG ALPINE_VERSION;
-
-FROM php:${PHP_VERSION}-fpm-alpine${ALPINE_VERSION}
+FROM php
 
 COPY --link --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
