@@ -54,7 +54,7 @@ jobs:
           linux/arm64
         push: ${{ github.event_name != 'pull_request' }}
         build-contexts: |
-          php: 'php=docker-image://php:${{ matrix.php-version }}-fpm-alpine${{ matrix.alpine-version }}'
+          php=docker-image://php:${{ matrix.php-version }}-fpm-alpine${{ matrix.alpine-version }}
         labels: ${{ steps.meta.outputs.labels }}
         tags: |
           trucksnl/php-fpm:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}
