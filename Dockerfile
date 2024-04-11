@@ -23,6 +23,7 @@ RUN install-php-extensions \
     pdo_mysql \
     redis-stable \
     sysvsem \
+    uuid \
     zip
 
 RUN mkdir -p /root/.ssh/ \
