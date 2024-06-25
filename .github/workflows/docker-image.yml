@@ -9,7 +9,6 @@ on:
     - cron: '0 2 * * 0'
 
 jobs:
-
   build-and-push-image:
     runs-on: ubuntu-latest
     strategy:
