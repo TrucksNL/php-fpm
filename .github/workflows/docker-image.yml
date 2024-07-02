@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         php-version: ['8.2', '8.3']
-        alpine-version: ['3.18', '3.19']
+        alpine-version: ['3.18', '3.19', '3.20']
     steps:
     - name: Git checkout
       uses: actions/checkout@v4
