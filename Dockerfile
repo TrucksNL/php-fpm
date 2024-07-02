@@ -2,7 +2,8 @@ FROM php
 
 COPY --link --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
-RUN apk add --no-cache \
+RUN apk update --no-cache \
+    && apk add --no-cache \
     fcgi \
     git \
     openssh
