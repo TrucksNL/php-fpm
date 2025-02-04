@@ -12,6 +12,7 @@ jobs:
   build-and-push-image:
     runs-on: ubuntu-24.04-arm
     strategy:
+      fail-fast: false
       matrix:
         php-version: ['8.3', '8.4']
         alpine-version: ['3.20', '3.21']
@@ -49,14 +50,14 @@ jobs:
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
-        file: ./Dockerfile
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        platforms: linux/amd64,linux/arm64
-        push: ${{ github.event_name != 'pull_request' }}
         build-contexts: |
           php=docker-image://php:${{ matrix.php-version }}-fpm-alpine${{ matrix.alpine-version }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        file: ./Dockerfile
         labels: ${{ steps.meta.outputs.labels }}
+        platforms: linux/amd64,linux/arm64
+        push: ${{ github.event_name != 'pull_request' }}
         tags: |
           trucksnl/php-fpm:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}
           trucksnl/php-fpm:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v${{ github.run_number }}
