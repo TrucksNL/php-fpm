@@ -16,11 +16,13 @@ RUN echo 'pm.status_path = /status' >> /usr/local/etc/php-fpm.d/zz-docker.conf
 
 RUN install-php-extensions \
     bcmath \
+    exif \
     gd \
     intl \
     mongodb-stable \
     mysqli \
     opcache \
+    pcntl \
     pdo_mysql \
     redis-stable \
     sysvsem \
