@@ -18,6 +18,7 @@ RUN install-php-extensions \
     bcmath \
     exif \
     gd \
+    grpc \
     intl \
     mongodb-stable \
     mysqli \
