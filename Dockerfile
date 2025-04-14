@@ -19,7 +19,7 @@ RUN install-php-extensions \
     exif \
     gd \
     intl \
-    mongodb-stable \
+    mongodb-^1 \
     mysqli \
     opcache \
     pcntl \
