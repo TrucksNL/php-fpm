@@ -54,8 +54,6 @@ jobs:
           build-contexts: |
             php=docker-image://php:${{ matrix.php-version }}-fpm-alpine${{ matrix.alpine-version }}
           platforms: linux/amd64,linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           file: ./Dockerfile
           context: .
           push: true
