@@ -94,7 +94,7 @@ jobs:
     strategy:
       matrix:
         php-version: ["8.3"]
-        alpine-version: ["3.20", "3.21"]
+        alpine-version: ["3.20", "3.21", "3.22"]
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
