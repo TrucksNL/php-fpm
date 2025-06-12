@@ -64,8 +64,7 @@ jobs:
       id: build
       uses: docker/build-push-action@v6
       with:
-        build-args: |
-          DOCKER_METADATA_OUTPUT_JSON
+        annotations: ${{ steps.meta.outputs.annotations }}
         build-contexts: |
           php=docker-image://php:${{ matrix.php-version }}-fpm-alpine${{ matrix.alpine-version }}
         cache-from: type=gha
