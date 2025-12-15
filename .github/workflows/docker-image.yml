@@ -21,7 +21,7 @@ jobs:
         platform:
           - linux/amd64
           - linux/arm64
-        php-version: ["8.3", "8.4"]
+        php-version: ["8.4", "8.5"]
         alpine-version: ["3.21", "3.22", "3.23"]
     steps:
     - name: Prepare
