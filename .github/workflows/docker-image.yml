@@ -12,6 +12,7 @@ on:
 env:
   DOCKERHUB_REPO: trucksnl/php-fpm
   GHCR_REPO: ghcr.io/trucksnl/php-fpm
+  LATEST_ALPINE: "3.23"
           
 jobs:
   build:
@@ -132,6 +133,7 @@ jobs:
           tags: |
             ${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}
             ${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v${{ github.run_number }}
+            ${{ matrix.alpine-version == env.LATEST_ALPINE && format('{0}-alpine-latest', matrix.php-version) || '' }}
 
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
