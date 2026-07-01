@@ -12,7 +12,7 @@ on:
 env:
   DOCKERHUB_REPO: trucksnl/php-fpm
   GHCR_REPO: ghcr.io/trucksnl/php-fpm
-  LATEST_ALPINE: "3.23"
+  LATEST_ALPINE: "3.24"
           
 jobs:
   build:
@@ -24,7 +24,7 @@ jobs:
           - linux/amd64
           - linux/arm64
         php-version: ["8.4", "8.5"]
-        alpine-version: ["3.22", "3.23"]
+        alpine-version: ["3.23", "3.24"]
     steps:
     - name: Prepare
       run: |
