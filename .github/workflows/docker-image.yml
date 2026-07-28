@@ -12,19 +12,38 @@ on:
 env:
   DOCKERHUB_REPO: trucksnl/php-fpm
   GHCR_REPO: ghcr.io/trucksnl/php-fpm
-  LATEST_ALPINE: "3.24"
-          
+
 jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    outputs:
+      php-versions: ${{ steps.matrix.outputs.php-versions }}
+      alpine-versions: ${{ steps.matrix.outputs.alpine-versions }}
+      latest-alpine: ${{ steps.matrix.outputs.latest-alpine }}
+    steps:
+      # Single source of truth for the build and merge matrices.
+      # Alpine versions must stay in ascending order: the last one is tagged 'latest'.
+      - name: Define matrix
+        id: matrix
+        run: |
+          php_versions='["8.4", "8.5"]'
+          alpine_versions='["3.23", "3.24"]'
+          echo "php-versions=$php_versions" >> $GITHUB_OUTPUT
+          echo "alpine-versions=$alpine_versions" >> $GITHUB_OUTPUT
+          echo "latest-alpine=$(jq -cr '.[-1]' <<< "$alpine_versions")" >> $GITHUB_OUTPUT
+
   build:
     runs-on: ${{ startsWith(matrix.platform, 'linux/arm') && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    needs:
+      - setup
     strategy:
       fail-fast: false
       matrix:
         platform:
           - linux/amd64
           - linux/arm64
-        php-version: ["8.4", "8.5"]
-        alpine-version: ["3.23", "3.24"]
+        php-version: ${{ fromJSON(needs.setup.outputs.php-versions) }}
+        alpine-version: ${{ fromJSON(needs.setup.outputs.alpine-versions) }}
     steps:
     - name: Prepare
       run: |
@@ -94,11 +113,13 @@ jobs:
   merge:
     runs-on: ubuntu-24.04-arm
     needs:
+      - setup
       - build
     strategy:
+      fail-fast: false
       matrix:
-        php-version: ["8.4", "8.5"]
-        alpine-version: ["3.22", "3.23"]
+        php-version: ${{ fromJSON(needs.setup.outputs.php-versions) }}
+        alpine-version: ${{ fromJSON(needs.setup.outputs.alpine-versions) }}
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
@@ -133,7 +154,7 @@ jobs:
           tags: |
             ${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}
             ${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v${{ github.run_number }}
-            ${{ matrix.alpine-version == env.LATEST_ALPINE && format('{0}-alpine-latest', matrix.php-version) || '' }}
+            ${{ matrix.alpine-version == needs.setup.outputs.latest-alpine && format('{0}-alpine-latest', matrix.php-version) || '' }}
 
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
