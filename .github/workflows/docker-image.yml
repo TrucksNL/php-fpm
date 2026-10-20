@@ -13,7 +13,7 @@ env:
 
 jobs:
   setup:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       php-versions: ${{ steps.matrix.outputs.php-versions }}
       alpine-versions: ${{ steps.matrix.outputs.alpine-versions }}
@@ -31,7 +31,7 @@ jobs:
           echo "latest-alpine=$(jq -cr '.[-1]' <<< "$alpine_versions")" >> $GITHUB_OUTPUT
 
   build:
-    runs-on: ${{ startsWith(matrix.platform, 'linux/arm') && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    runs-on: ${{ startsWith(matrix.platform, 'linux/arm') && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
     needs:
       - setup
     strategy:
@@ -107,7 +107,7 @@ jobs:
         retention-days: 1
 
   merge:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     if: github.event_name != 'pull_request'
     needs:
       - setup
@@ -160,7 +160,7 @@ jobs:
   # The build variant (runtime plus git and ssh) is a thin layer on top of the published runtime image,
   # so the PHP extensions are not built or downloaded a second time.
   build-variant:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     if: github.event_name != 'pull_request'
     needs:
       - setup
