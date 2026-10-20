@@ -2,8 +2,6 @@
 
 [![Docker Image CI](https://github.com/TrucksNL/php-fpm/actions/workflows/docker-image.yml/badge.svg?branch=main)](https://github.com/TrucksNL/php-fpm/actions/workflows/docker-image.yml)
 
-![Docker Pulls](https://img.shields.io/docker/pulls/trucksnl/php-fpm)
-
 ## Image variants
 
 Every PHP/Alpine combination is published in two variants. Both run as `www-data` by default.
@@ -18,11 +16,11 @@ The same suffix applies to the `-v<run>` and `-alpine-latest` tags, e.g. `8.4-al
 Example multi-stage build:
 
 ```dockerfile
-FROM trucksnl/php-fpm:8.4-alpine-latest-build AS vendor
+FROM ghcr.io/trucksnl/php-fpm:8.4-alpine-latest-build AS vendor
 COPY composer.* ./
 RUN --mount=type=ssh composer install --no-dev
 
-FROM trucksnl/php-fpm:8.4-alpine-latest
+FROM ghcr.io/trucksnl/php-fpm:8.4-alpine-latest
 COPY --from=vendor --chown=www-data:www-data /var/www/html/vendor ./vendor
 COPY . .
 ```
