@@ -4,13 +4,11 @@ on:
   push:
     branches: ["main"]
   pull_request:
-    branches: ["main"]
   schedule:
     - cron: "0 2 * * 0"
   workflow_dispatch:
 
 env:
-  DOCKERHUB_REPO: trucksnl/php-fpm
   GHCR_REPO: ghcr.io/trucksnl/php-fpm
 
 jobs:
@@ -44,6 +42,7 @@ jobs:
           - linux/arm64
         php-version: ${{ fromJSON(needs.setup.outputs.php-versions) }}
         alpine-version: ${{ fromJSON(needs.setup.outputs.alpine-versions) }}
+        variant: [runtime, build]
     steps:
     - name: Prepare
       run: |
@@ -58,7 +57,6 @@ jobs:
       uses: docker/metadata-action@v5
       with:
         images: |
-          ${{ env.DOCKERHUB_REPO }}
           ${{ env.GHCR_REPO }}
       env:
         DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
@@ -67,13 +65,6 @@ jobs:
       uses: docker/setup-buildx-action@v3
       with:
         platforms: ${{ matrix.platform }}
-    
-    - name: Login to Docker Hub
-      if: github.event_name != 'pull_request'
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
     
     - name: Login to GHCR
       if: github.event_name != 'pull_request'
@@ -88,14 +79,16 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         annotations: ${{ steps.meta.outputs.annotations }}
-        build-contexts: |
-          php=docker-image://php:${{ matrix.php-version }}-fpm-alpine${{ matrix.alpine-version }}
+        build-args: |
+          PHP_VERSION=${{ matrix.php-version }}
+          ALPINE_VERSION=${{ matrix.alpine-version }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
         file: ./Dockerfile
+        target: ${{ matrix.variant }}
         platforms: ${{ matrix.platform }}
         # Pull requests have no registry credentials, so they only verify that the image builds.
-        outputs: ${{ github.event_name != 'pull_request' && format('type=image,"name={0},{1}",push-by-digest=true,name-canonical=true,push=true', env.DOCKERHUB_REPO, env.GHCR_REPO) || 'type=cacheonly' }}
+        outputs: ${{ github.event_name != 'pull_request' && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', env.GHCR_REPO) || 'type=cacheonly' }}
 
     - name: Export digest
       if: github.event_name != 'pull_request'
@@ -108,7 +101,7 @@ jobs:
       if: github.event_name != 'pull_request'
       uses: actions/upload-artifact@v4
       with:
-        name: digests-${{ matrix.php-version }}-${{ matrix.alpine-version }}-${{ env.PLATFORM_PAIR }}
+        name: digests-${{ matrix.php-version }}-${{ matrix.alpine-version }}-${{ matrix.variant }}-${{ env.PLATFORM_PAIR }}
         path: ${{ runner.temp }}/digests/*
         if-no-files-found: error
         retention-days: 1
@@ -124,19 +117,17 @@ jobs:
       matrix:
         php-version: ${{ fromJSON(needs.setup.outputs.php-versions) }}
         alpine-version: ${{ fromJSON(needs.setup.outputs.alpine-versions) }}
+        variant: [runtime, build]
+    # The runtime variant keeps the plain tags; the build variant (with git and ssh) gets a '-build' suffix.
+    env:
+      TAG_SUFFIX: ${{ matrix.variant == 'build' && '-build' || '' }}
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
           path: ${{ runner.temp }}/digests
-          pattern: digests-${{ matrix.php-version }}-${{ matrix.alpine-version }}-*
+          pattern: digests-${{ matrix.php-version }}-${{ matrix.alpine-version }}-${{ matrix.variant }}-*
           merge-multiple: true
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -153,24 +144,19 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.DOCKERHUB_REPO }}
             ${{ env.GHCR_REPO }}
           tags: |
-            ${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}
-            ${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v${{ github.run_number }}
-            ${{ matrix.alpine-version == needs.setup.outputs.latest-alpine && format('{0}-alpine-latest', matrix.php-version) || '' }}
+            ${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}${{ env.TAG_SUFFIX }}
+            ${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v${{ github.run_number }}${{ env.TAG_SUFFIX }}
+            ${{ matrix.alpine-version == needs.setup.outputs.latest-alpine && format('{0}-alpine-latest{1}', matrix.php-version, env.TAG_SUFFIX) || '' }}
 
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
         run: |
           docker buildx imagetools create \
             $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.DOCKERHUB_REPO }}@sha256:%s ' *)
-          docker buildx imagetools create \
-            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ env.GHCR_REPO }}@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.DOCKERHUB_REPO }}:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v${{ github.run_number }}
-          docker buildx imagetools inspect ${{ env.GHCR_REPO }}:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v${{ github.run_number }}
+          docker buildx imagetools inspect ${{ env.GHCR_REPO }}:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v${{ github.run_number }}${{ env.TAG_SUFFIX }}
