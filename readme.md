@@ -9,7 +9,7 @@ Every PHP/Alpine combination is published in two variants. Both run as `www-data
 | Tag | Contents | Use for |
 |-----|----------|---------|
 | `8.4-alpine3.24` | PHP-FPM, extensions, healthcheck | Final runtime images |
-| `8.4-alpine3.24-build` | Runtime plus `git`, `openssh` and pinned Bitbucket host keys | Build stages, e.g. `composer install` with VCS dependencies |
+| `8.4-alpine3.24-build` | Runtime plus `git`, `openssh`, Composer and pinned Bitbucket host keys | Build stages, e.g. `composer install` with VCS dependencies |
 
 The same suffix applies to the `-v<run>` and `-alpine-latest` tags, e.g. `8.4-alpine-latest-build`.
 

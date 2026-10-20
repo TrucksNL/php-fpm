@@ -35,7 +35,7 @@ USER www-data
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD php-fpm-healthcheck
 
-# Same as runtime, plus git and ssh for fetching private dependencies (e.g. composer VCS installs).
+# Same as runtime, plus git, ssh and Composer for fetching private dependencies (e.g. composer VCS installs).
 # CI overrides the runtime stage with the published runtime image (--build-context runtime=docker-image://...),
 # so only the layers below are built.
 FROM runtime AS build
@@ -45,6 +45,9 @@ USER root
 RUN apk add --no-cache \
     git \
     openssh
+
+# Composer, pinned to a minor version; patch releases are picked up on rebuild.
+COPY --from=composer/composer:2.10-bin /composer /usr/local/bin/composer
 
 # Bitbucket host keys, from https://bitbucket.org/site/ssh (verify against Atlassian's published fingerprints).
 # System-wide, so ssh works for any user.
