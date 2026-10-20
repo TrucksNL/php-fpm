@@ -36,6 +36,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD php-fpm-healthcheck
 
 # Same as runtime, plus git and ssh for fetching private dependencies (e.g. composer VCS installs).
+# CI overrides the runtime stage with the published runtime image (--build-context runtime=docker-image://...),
+# so only the layers below are built.
 FROM runtime AS build
 
 USER root
