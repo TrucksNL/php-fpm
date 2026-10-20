@@ -42,7 +42,6 @@ jobs:
           - linux/arm64
         php-version: ${{ fromJSON(needs.setup.outputs.php-versions) }}
         alpine-version: ${{ fromJSON(needs.setup.outputs.alpine-versions) }}
-        variant: [runtime, build]
     steps:
     - name: Prepare
       run: |
@@ -85,7 +84,8 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         file: ./Dockerfile
-        target: ${{ matrix.variant }}
+        # Pull requests push nothing for build-variant to layer on, so they build the full build stage instead.
+        target: ${{ github.event_name == 'pull_request' && 'build' || 'runtime' }}
         platforms: ${{ matrix.platform }}
         # Pull requests have no registry credentials, so they only verify that the image builds.
         outputs: ${{ github.event_name != 'pull_request' && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', env.GHCR_REPO) || 'type=cacheonly' }}
@@ -101,7 +101,7 @@ jobs:
       if: github.event_name != 'pull_request'
       uses: actions/upload-artifact@v4
       with:
-        name: digests-${{ matrix.php-version }}-${{ matrix.alpine-version }}-${{ matrix.variant }}-${{ env.PLATFORM_PAIR }}
+        name: digests-${{ matrix.php-version }}-${{ matrix.alpine-version }}-${{ env.PLATFORM_PAIR }}
         path: ${{ runner.temp }}/digests/*
         if-no-files-found: error
         retention-days: 1
@@ -117,16 +117,12 @@ jobs:
       matrix:
         php-version: ${{ fromJSON(needs.setup.outputs.php-versions) }}
         alpine-version: ${{ fromJSON(needs.setup.outputs.alpine-versions) }}
-        variant: [runtime, build]
-    # The runtime variant keeps the plain tags; the build variant (with git and ssh) gets a '-build' suffix.
-    env:
-      TAG_SUFFIX: ${{ matrix.variant == 'build' && '-build' || '' }}
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
           path: ${{ runner.temp }}/digests
-          pattern: digests-${{ matrix.php-version }}-${{ matrix.alpine-version }}-${{ matrix.variant }}-*
+          pattern: digests-${{ matrix.php-version }}-${{ matrix.alpine-version }}-*
           merge-multiple: true
 
       - name: Login to GHCR
@@ -146,9 +142,9 @@ jobs:
           images: |
             ${{ env.GHCR_REPO }}
           tags: |
-            ${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}${{ env.TAG_SUFFIX }}
-            ${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v${{ github.run_number }}${{ env.TAG_SUFFIX }}
-            ${{ matrix.alpine-version == needs.setup.outputs.latest-alpine && format('{0}-alpine-latest{1}', matrix.php-version, env.TAG_SUFFIX) || '' }}
+            ${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}
+            ${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v${{ github.run_number }}
+            ${{ matrix.alpine-version == needs.setup.outputs.latest-alpine && format('{0}-alpine-latest', matrix.php-version) || '' }}
 
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
@@ -159,4 +155,73 @@ jobs:
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.GHCR_REPO }}:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v${{ github.run_number }}${{ env.TAG_SUFFIX }}
+          docker buildx imagetools inspect ${{ env.GHCR_REPO }}:${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}-v${{ github.run_number }}
+
+  # The build variant (runtime plus git and ssh) is a thin layer on top of the published runtime image,
+  # so the PHP extensions are not built or downloaded a second time.
+  build-variant:
+    runs-on: ubuntu-24.04-arm
+    if: github.event_name != 'pull_request'
+    needs:
+      - setup
+      - merge
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ${{ fromJSON(needs.setup.outputs.php-versions) }}
+        alpine-version: ${{ fromJSON(needs.setup.outputs.alpine-versions) }}
+    env:
+      IMAGE_TAG: ${{ matrix.php-version }}-alpine${{ matrix.alpine-version }}
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.GHCR_REPO }}
+          tags: |
+            ${{ env.IMAGE_TAG }}-build
+            ${{ env.IMAGE_TAG }}-v${{ github.run_number }}-build
+            ${{ matrix.alpine-version == needs.setup.outputs.latest-alpine && format('{0}-alpine-latest-build', matrix.php-version) || '' }}
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          annotations: ${{ steps.meta.outputs.annotations }}
+          build-contexts: |
+            runtime=docker-image://${{ env.GHCR_REPO }}:${{ env.IMAGE_TAG }}-v${{ github.run_number }}
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          target: build
+
+      - name: Smoke test
+        run: |
+          docker run --rm --entrypoint sh \
+            ${{ env.GHCR_REPO }}:${{ env.IMAGE_TAG }}-v${{ github.run_number }}-build \
+            -c 'git --version && ssh -V && test "$(id -un)" = www-data && ssh-keygen -F ssh.bitbucket.org -f /etc/ssh/ssh_known_hosts'
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.GHCR_REPO }}:${{ env.IMAGE_TAG }}-v${{ github.run_number }}-build
