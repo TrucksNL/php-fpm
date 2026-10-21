@@ -32,3 +32,9 @@ USER root
 RUN install-php-extensions xsl
 USER www-data
 ```
+
+## PHP extensions
+
+Bundled extensions (`bcmath`, `exif`, `gd`, `intl`, `mysqli`, `opcache`, `pcntl`, `pdo_mysql`, `sysvsem`, `zip`) are installed with `install-php-extensions`.
+
+`excimer` (required for [Sentry profiling](https://docs.sentry.io/platforms/php/profiling/)), `redis` and `mongodb` are installed with [PIE](https://github.com/php/pie) at pinned versions, so builds do not depend on `pecl.php.net`.
