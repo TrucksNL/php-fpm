@@ -8,12 +8,16 @@ LABEL org.opencontainers.image.source="https://github.com/TrucksNL/php-fpm" \
 
 COPY --link --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
-RUN apk add --no-cache \
-    fcgi \
-    && wget -O /usr/local/bin/php-fpm-healthcheck \
-    https://raw.githubusercontent.com/renatomefi/php-fpm-healthcheck/master/php-fpm-healthcheck \
-    && chmod +x /usr/local/bin/php-fpm-healthcheck \
-    && echo 'pm.status_path = /status' >> /usr/local/etc/php-fpm.d/zz-docker.conf
+# php-fpm-healthcheck is pinned to a commit instead of master so builds are reproducible.
+ARG HEALTHCHECK_REF=283afa16656f92b5457b2d7f59691650f14245a9
+RUN apk add --no-cache fcgi \
+    && wget --tries=3 -O /usr/local/bin/php-fpm-healthcheck \
+    "https://raw.githubusercontent.com/renatomefi/php-fpm-healthcheck/${HEALTHCHECK_REF}/php-fpm-healthcheck" \
+    && chmod +x /usr/local/bin/php-fpm-healthcheck
+
+# Enables the /status page used by php-fpm-healthcheck. Copied instead of appended to zz-docker.conf in a RUN step,
+# which intermittently failed in CI with "Interrupted system call".
+COPY --chmod=644 zz-status.conf /usr/local/etc/php-fpm.d/zz-status.conf
 
 RUN install-php-extensions \
     bcmath \
